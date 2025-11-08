@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Two‑Page Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .page { display: none; }
+    .active { display: block; }
+    input { display: block; margin: 10px 0; padding: 8px; width: 250px; }
+    button { padding: 10px 20px; }
+  </style>
+</head>
+<body>
+  <h2>Student Registration</h2>
+
+  <!-- Page 1: Email + Passwords -->
+  <div id="page1" class="page active">
+    <label>Email:</label>
+    <input type="email" id="email" required />
+
+    <label>Password: <small style="font-weight:normal; color:#666">(Use a difficult password: ≥8 characters with upper & lower case letters, numbers, and symbols)</small></label>
+    <input type="password" id="password" required />
+    
+
+    <label>Confirm Password:</label>
+    <input type="password" id="confirmPassword" required />
+
+    <button onclick="goToPage2()">Next</button>
+  </div>
+
+  <!-- Page 2: Upload CV -->
+  <div id="page2" class="page">
+    <label>Upload Your CV (PDF/DOC):</label>
+    <input type="file" id="cvFile" accept="application/pdf,.doc,.docx" />
+
+    <button onclick="submitForm()">Submit</button>
+  </div>
+
+  <script>
+    let savedData = {};
+
+    // TODO: Replace with your deployed backend URL (Apps Script Web App)
+    const BACKEND_URL = "https://SCRIPT_WEB_APP_URL_GOES_HERE"; // <-- Replace with your Apps Script Web App URL
+
+    ('input', (e) => {
+      if (e.target && e.target.id === 'password') {
+        const el = document.getElementById('pwdStrength');
+        el.textContent = 'Password strength: ' + describeStrength(e.target.value);
+      }
+    });
+
+    function goToPage2() {
+      const email = document.getElementById('email').value.trim();
+      const pass = document.getElementById('password').value;
+      const confirm = document.getElementById('confirmPassword').value;
+
+      if (!email || !pass || !confirm) {
+        alert('Please fill all fields.');
+        return;
+      }
+
+      if (pass !== confirm) {
+        alert('Passwords do not match!');
+        return;
+      }
+
+      // Note only; no strength enforcement
+      }
+
+      // Save password as plain text (as requested)
+      savedData.email = email;
+      savedData.password = pass; // NOTE: plain text, not secure
+
+      document.getElementById('page1').classList.remove('active');
+      document.getElementById('page2').classList.add('active');
+    }
+
+    async function submitForm() {
+      const cv = document.getElementById('cvFile').files[0];
+      if (!cv) {
+        alert('Please upload your CV.');
+        return;
+      }
+
+      try {
+        const fd = new FormData();
+        fd.append('email', savedData.email);
+        fd.append('password', savedData.password); // plain text
+        fd.append('cv', cv, cv.name);
+
+        const res = await fetch(BACKEND_URL, {
+          method: 'POST',
+          body: fd
+        });
+
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        console.log('Server response:', data);
+        alert('Form submitted and saved!');
+        // Reset UI
+        document.getElementById('page2').classList.remove('active');
+        document.getElementById('page1').classList.add('active');
+        document.getElementById('email').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('cvFile').value = '';
+        savedData = {};
+      } catch (err) {
+        console.error(err);
+        alert('Could not save. Check console and BACKEND_URL.');
+      }
+    }
+  </script>
+</body>
+</html>
