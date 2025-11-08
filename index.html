@@ -6,17 +6,16 @@
   <title>Student Registration</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 24px; background:#fafafa; }
-    .card { background:#fff; border-radius:16px; padding:24px; max-width:520px; margin:auto; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+    .card { background:#fff; border-radius:16px; padding:24px; max-width:560px; margin:auto; box-shadow:0 6px 20px rgba(0,0,0,0.08); }
     h2 { margin-top:0; }
-    /* IMPORTANT: this hides non-active pages */
-    .page { display: none; }
-    .active { display: block; }
-    label { font-weight:600; margin-top: 10px; display:block; }
+    .page { display:none; }
+    .active { display:block; }
+    label { font-weight:600; margin-top:12px; display:block; }
     input[type="email"], input[type="password"], input[type="file"] {
-      display:block; margin: 8px 0 16px; padding: 10px; width:100%;
-      box-sizing:border-box; border:1px solid #ddd; border-radius:10px;
+      display:block; margin:8px 0 16px; padding:10px; width:100%; box-sizing:border-box;
+      border:1px solid #ddd; border-radius:10px;
     }
-    button { padding: 12px 18px; border:0; border-radius:12px; cursor:pointer; }
+    button { padding:12px 18px; border:0; border-radius:12px; cursor:pointer; }
     .primary { background:#2563eb; color:#fff; }
     .row { display:flex; gap:12px; }
     small.note { font-weight:normal; color:#666; }
@@ -26,38 +25,48 @@
   <div class="card">
     <h2>Student Registration</h2>
 
-    <!-- Page 1 (starts visible) -->
-    <div id="page1" class="page active">
-      <label>Email:</label>
-      <input type="email" id="email" required>
+    <!--
+      Using Formspree endpoint provided by you:
+      https://formspree.io/f/xzzypezk
 
-      <label>Password:
-        <small class="note">(Use a difficult password)</small>
-      </label>
-      <input type="password" id="password" required>
+      This is ONE <form> wrapping both pages. We just hide/show sections with JS.
+      When you press Submit, the browser posts the form data (including the file) directly to Formspree.
+    -->
+    <form id="studentForm" action="https://formspree.io/f/xzzypezk" method="POST" enctype="multipart/form-data" accept-charset="UTF-8">
+      <!-- Page 1 -->
+      <div id="page1" class="page active">
+        <label>Email:</label>
+        <input type="email" id="email" name="email" required />
 
-      <label>Confirm Password:</label>
-      <input type="password" id="confirmPassword" required>
+        <label>Password: <small class="note">(Use a difficult password)</small></label>
+        <input type="password" id="password" name="password" required />
 
-      <button class="primary" onclick="goToPage2()">Next</button>
-    </div>
+        <label>Confirm Password:</label>
+        <input type="password" id="confirmPassword" required />
 
-    <!-- Page 2 (hidden until Next) -->
-    <div id="page2" class="page">
-      <label>Upload Your CV (PDF/DOC):</label>
-      <input type="file" id="cvFile" accept="application/pdf,.doc,.docx">
-
-      <div class="row">
-        <button onclick="goBack()">Back</button>
-        <button class="primary" onclick="submitForm()">Submit</button>
+        <button class="primary" type="button" onclick="goToPage2()">Next</button>
       </div>
-    </div>
+
+      <!-- Page 2 -->
+      <div id="page2" class="page">
+        <label>Upload Your CV (PDF/DOC):</label>
+        <input type="file" id="cvFile" name="cv" accept="application/pdf,.doc,.docx" />
+
+        <div class="row">
+          <button type="button" onclick="goBack()">Back</button>
+          <button class="primary" type="submit">Submit</button>
+        </div>
+      </div>
+
+      <!-- Optional metadata fields for Formspree -->
+      <input type="hidden" name="_subject" value="New Student Registration" />
+      <input type="hidden" name="_language" value="en" />
+      <!-- To request JSON response (useful if you ever switch to fetch):
+      <input type="hidden" name="_format" value="json" /> -->
+    </form>
   </div>
 
   <script>
-    let savedData = {};
-    const BACKEND_URL = "https://SCRIPT_WEB_APP_URL_GOES_HERE"; // replace with your Apps Script Web App URL
-
     function goToPage2() {
       const email = document.getElementById('email').value.trim();
       const pass = document.getElementById('password').value;
@@ -66,10 +75,7 @@
       if (!email || !pass || !confirm) { alert('Please fill all fields.'); return; }
       if (pass !== confirm) { alert('Passwords do not match!'); return; }
 
-      // Save as plain text (teaching demo only)
-      savedData.email = email;
-      savedData.password = pass;
-
+      // Move to page 2
       document.getElementById('page1').classList.remove('active');
       document.getElementById('page2').classList.add('active');
     }
@@ -79,36 +85,11 @@
       document.getElementById('page1').classList.add('active');
     }
 
-    async function submitForm() {
-      const cv = document.getElementById('cvFile').files[0];
-      if (!cv) { alert('Please upload your CV.'); return; }
-
-      try {
-        const fd = new FormData();
-        fd.append('email', savedData.email);
-        fd.append('password', savedData.password); // plain text
-        fd.append('cv', cv, cv.name);
-
-        const res = await fetch(BACKEND_URL, { method: 'POST', body: fd });
-        if (!res.ok) throw new Error('Upload failed');
-
-        const data = await res.json();
-        console.log('Server response:', data);
-        alert('Form submitted and saved!');
-
-        // Reset
-        document.getElementById('page2').classList.remove('active');
-        document.getElementById('page1').classList.add('active');
-        document.getElementById('email').value = '';
-        document.getElementById('password').value = '';
-        document.getElementById('confirmPassword').value = '';
-        document.getElementById('cvFile').value = '';
-        savedData = {};
-      } catch (err) {
-        console.error(err);
-        alert('Could not save. Check console and BACKEND_URL.');
-      }
-    }
+    // Optional: after submit, show a simple message instead of Formspree redirect
+    // If you prefer to stay on the page, uncomment below and add target="_self" to the form.
+    // document.getElementById('studentForm').addEventListener('submit', function(){
+    //   setTimeout(() => alert('Submitted! Check your Hotmail inbox for the notification.'), 300);
+    // });
   </script>
 </body>
 </html>
