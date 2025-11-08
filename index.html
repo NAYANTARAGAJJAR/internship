@@ -86,12 +86,16 @@
     }
 
     // Improved submit handler that shows clear success/error messages
-    const form = document.getElementById('studentForm');
-    form.addEventListener('submit', async (e) => {
-      // Let us handle it via fetch so we can show a message instead of a redirect
-      e.preventDefault();
-      const endpoint = form.action;
-      const fd = new FormData(form);
+   
+   
+   <!-- make cv optional or remove the input entirely -->
+<input type="file" id="cvFile" name="cv" accept="application/pdf,.doc,.docx">
+
+<script>
+  // If Formspree rejects files, resubmits without the file automatically (I already added this logic in your page).
+  // You can also hide/remove the CV field to avoid confusion.
+</script>
+
 
       // Formspree returns nice JSON if we ask for it
       const send = async (bodyFd) => fetch(endpoint, {
