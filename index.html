@@ -85,11 +85,65 @@
       document.getElementById('page1').classList.add('active');
     }
 
-    // Optional: after submit, show a simple message instead of Formspree redirect
-    // If you prefer to stay on the page, uncomment below and add target="_self" to the form.
-    // document.getElementById('studentForm').addEventListener('submit', function(){
-    //   setTimeout(() => alert('Submitted! Check your Hotmail inbox for the notification.'), 300);
-    // });
+    // Improved submit handler that shows clear success/error messages
+    const form = document.getElementById('studentForm');
+    form.addEventListener('submit', async (e) => {
+      // Let us handle it via fetch so we can show a message instead of a redirect
+      e.preventDefault();
+      const endpoint = form.action;
+      const fd = new FormData(form);
+
+      // Formspree returns nice JSON if we ask for it
+      const send = async (bodyFd) => fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: bodyFd
+      });
+
+      try {
+        let res = await send(fd);
+        if (!res.ok) {
+          // If file uploads are blocked on your Formspree plan, try again without the CV
+          const cv = document.getElementById('cvFile').files[0];
+          if (cv) {
+            const retry = confirm('Upload failed (likely due to file attachment limits). Submit without CV?');
+            if (retry) {
+              const fd2 = new FormData(form);
+              fd2.delete('cv');
+              res = await send(fd2);
+            }
+          }
+        }
+
+        if (res.ok) {
+          alert('Submitted! Check your Formspree dashboard / email.');
+          // Optional reset
+          form.reset();
+          document.getElementById('page2').classList.remove('active');
+          document.getElementById('page1').classList.add('active');
+          return;
+        }
+
+        // Show detailed error if available
+        let msg = 'Could not submit. ';
+        try {
+          const data = await res.json();
+          if (data && data.errors && data.errors.length) {
+            msg += data.errors.map(e => e.message).join('; ');
+          } else if (data && data.message) {
+            msg += data.message;
+          } else {
+            msg += 'Check your Formspree form status and allowed fields.';
+          }
+        } catch (_) {
+          msg += 'Check your Formspree form status and allowed fields.';
+        }
+        alert(msg);
+      } catch (err) {
+        console.error(err);
+        alert('Network or CORS error. Make sure your Formspree form is active/verified.');
+      }
+    });
   </script>
 </body>
 </html>
